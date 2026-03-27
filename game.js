@@ -94,6 +94,177 @@ const JOSHUA_DIALOGS = {
 };
 
 // ============================================================
+// SOUND SYSTEM (Web Audio API)
+// ============================================================
+
+let audioCtx = null;
+let soundEnabled = true;
+let bgmDroneNodes = [];
+let bgmPingTimer = null;
+
+function ensureAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+function playTone(freq, duration, type = 'square', gainVal = 0.1, startDelay = 0) {
+  if (!soundEnabled) return;
+  const ctx = ensureAudioCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, ctx.currentTime + startDelay);
+  gain.gain.setValueAtTime(gainVal, ctx.currentTime + startDelay);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startDelay + duration);
+  osc.start(ctx.currentTime + startDelay);
+  osc.stop(ctx.currentTime + startDelay + duration + 0.01);
+}
+
+function playClick() {
+  playTone(660, 0.04, 'square', 0.07);
+}
+
+function playSelect() {
+  playTone(880, 0.06, 'square', 0.09);
+  playTone(1100, 0.06, 'square', 0.07, 0.07);
+}
+
+function playLaunch() {
+  if (!soundEnabled) return;
+  const ctx = ensureAudioCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(180, ctx.currentTime);
+  osc.frequency.linearRampToValueAtTime(900, ctx.currentTime + 0.7);
+  gain.gain.setValueAtTime(0.14, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + 0.85);
+}
+
+function playExplosion() {
+  if (!soundEnabled) return;
+  const ctx = ensureAudioCtx();
+  const duration = 0.55;
+  const sampleRate = ctx.sampleRate;
+  const bufLen = Math.floor(sampleRate * duration);
+  const buffer = ctx.createBuffer(1, bufLen, sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) {
+    const env = Math.pow(1 - i / bufLen, 1.8);
+    data[i] = (Math.random() * 2 - 1) * env;
+  }
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.45, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+  source.connect(gain);
+  gain.connect(ctx.destination);
+  source.start();
+}
+
+function playWarning() {
+  if (!soundEnabled) return;
+  for (let i = 0; i < 3; i++) {
+    playTone(880, 0.18, 'square', 0.14, i * 0.32);
+    playTone(660, 0.18, 'square', 0.14, i * 0.32 + 0.18);
+  }
+}
+
+function playDefconChange() {
+  if (!soundEnabled) return;
+  [550, 460, 370, 280].forEach((f, i) => playTone(f, 0.14, 'square', 0.11, i * 0.18));
+}
+
+function playVictory() {
+  if (!soundEnabled) return;
+  [523, 659, 784, 1047].forEach((f, i) => playTone(f, 0.28, 'square', 0.11, i * 0.22));
+}
+
+function playDefeat() {
+  if (!soundEnabled) return;
+  [440, 370, 311, 220].forEach((f, i) => playTone(f, 0.38, 'sawtooth', 0.1, i * 0.28));
+}
+
+function startBGM() {
+  if (!soundEnabled) return;
+  stopBGM();
+  const ctx = ensureAudioCtx();
+
+  const masterGain = ctx.createGain();
+  masterGain.gain.value = 0.055;
+  masterGain.connect(ctx.destination);
+
+  const osc1 = ctx.createOscillator();
+  osc1.type = 'sine';
+  osc1.frequency.value = 55;
+  osc1.connect(masterGain);
+  osc1.start();
+
+  const osc2 = ctx.createOscillator();
+  osc2.type = 'sine';
+  osc2.frequency.value = 58.3;
+  osc2.connect(masterGain);
+  osc2.start();
+
+  bgmDroneNodes = [osc1, osc2, masterGain];
+
+  function schedulePing() {
+    if (!soundEnabled || bgmDroneNodes.length === 0) return;
+    const interval = Math.max(1800, 5500 - (5 - state.defcon) * 900);
+    bgmPingTimer = setTimeout(() => {
+      playTone(880, 0.12, 'sine', 0.055);
+      schedulePing();
+    }, interval);
+  }
+  schedulePing();
+}
+
+function stopBGM() {
+  if (bgmPingTimer !== null) {
+    clearTimeout(bgmPingTimer);
+    bgmPingTimer = null;
+  }
+  bgmDroneNodes.forEach(node => {
+    if (typeof node.stop === 'function') {
+      try { node.stop(); } catch (_) {}
+    }
+    try { node.disconnect(); } catch (_) {}
+  });
+  bgmDroneNodes = [];
+}
+
+function updateBGMPitch() {
+  if (bgmDroneNodes.length >= 2) {
+    const base = 55 + (5 - state.defcon) * 8;
+    bgmDroneNodes[0].frequency.value = base;
+    bgmDroneNodes[1].frequency.value = base * 1.06;
+  }
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const btn = $('btn-sound');
+  if (btn) btn.textContent = soundEnabled ? '[ ♪ SOUND: ON ]' : '[ ♫ SOUND: OFF ]';
+  if (soundEnabled) {
+    if (state.phase === 'game') startBGM();
+  } else {
+    stopBGM();
+  }
+}
+
+// ============================================================
 // GAME STATE
 // ============================================================
 
@@ -321,6 +492,7 @@ function initGame(mode) {
   renderMap();
   updateStatusPanels();
   clearLogs();
+  startBGM();
 
   // Joshua intro
   setTimeout(async () => {
@@ -355,7 +527,7 @@ function renderMap() {
     h = containerH;
     w = h * ratio;
   }
-  w = Math.max(400, Math.min(w, 900));
+  w = Math.max(280, Math.min(w, 900));
   h = w / ratio;
 
   mapW = w;
@@ -594,6 +766,7 @@ function confirmStrike() {
   state.playerTargets.push(cityKey);
   getCityMarker(cityKey)?.classList.add('targeted');
   addEventLog(`TARGETED: ${city.name}`, 'player-action');
+  playSelect();
   updateTargetList();
 
   if (state.playerTargets.length === state.maxTargetsPerRound) {
@@ -638,6 +811,7 @@ async function launchMissiles() {
   $('btn-launch').textContent = '[ MISSILES IN FLIGHT... ]';
   state.turnPhase = 'resolution';
   setPhaseIndicator('resolution');
+  playLaunch();
 
   // AI picks targets
   addJoshuaLog(randomFrom(JOSHUA_DIALOGS.aiThinking), 'system');
@@ -713,10 +887,16 @@ async function resolveRound() {
   state.missiles.ussr = Math.max(0, state.missiles.ussr);
 
   // Update DEFCON
+  const prevDefcon = state.defcon;
   const totalHits = playerHits + aiHits;
   if (totalHits >= 4) state.defcon = Math.max(1, state.defcon - 2);
   else if (totalHits >= 2) state.defcon = Math.max(1, state.defcon - 1);
   else if (totalHits >= 1) state.defcon = Math.max(2, state.defcon - 1);
+
+  if (state.defcon < prevDefcon) {
+    playDefconChange();
+    updateBGMPitch();
+  }
 
   updateStatusPanels();
 
@@ -759,6 +939,7 @@ function destroyCity(key) {
 }
 
 function showExplosion(x, y) {
+  playExplosion();
   const exp = document.createElement('div');
   exp.className = 'explosion';
   const size = 30 + Math.random() * 20;
@@ -819,6 +1000,7 @@ async function animateMissileTo(targetKey, side) {
 }
 
 function flashWarning() {
+  playWarning();
   const flash = document.createElement('div');
   flash.className = 'warning-flash';
   document.body.appendChild(flash);
@@ -859,6 +1041,7 @@ function checkEndConditions() {
 async function endGame(outcome) {
   state.turnPhase = 'ended';
   $('btn-launch').disabled = true;
+  stopBGM();
 
   let dialogLines, titleText, titleClass, message;
 
@@ -868,11 +1051,13 @@ async function endGame(outcome) {
     titleClass = 'draw';
     message = 'Neither side achieved a decisive victory.\nThe planet lies in ruin. There are no winners.';
   } else if (outcome === 'player_wins') {
+    playVictory();
     dialogLines = JOSHUA_DIALOGS.playerWins;
     titleText = 'SOVIET FORCES NEUTRALIZED';
     titleClass = 'victory';
     message = 'You have destroyed more enemy targets.\nBut at what cost? Billions are dead.\nThe fallout will circle the globe for decades.';
   } else {
+    playDefeat();
     dialogLines = JOSHUA_DIALOGS.playerLoses;
     titleText = 'UNITED STATES FORCES NEUTRALIZED';
     titleClass = 'defeat';
@@ -1010,27 +1195,29 @@ function initDOM() {
   // Login form
   $('login-form').addEventListener('submit', (e) => {
     e.preventDefault();
+    playClick();
     handleLogin();
   });
 
   // Menu items
-  $('menu-standard').addEventListener('click', () => initGame('standard'));
-  $('menu-limited').addEventListener('click', () => initGame('limited'));
-  $('menu-full').addEventListener('click', () => initGame('full'));
-  $('menu-back').addEventListener('click', () => showScreen('menu'));
+  $('menu-standard').addEventListener('click', () => { playClick(); initGame('standard'); });
+  $('menu-limited').addEventListener('click', () => { playClick(); initGame('limited'); });
+  $('menu-full').addEventListener('click', () => { playClick(); initGame('full'); });
+  $('menu-back').addEventListener('click', () => { playClick(); showScreen('login'); });
 
   // Game buttons
   $('btn-launch').addEventListener('click', launchMissiles);
   $('btn-stand-down').addEventListener('click', standDown);
-  $('btn-restart').addEventListener('click', () => showScreen('menu'));
+  $('btn-restart').addEventListener('click', () => { playClick(); stopBGM(); showScreen('menu'); });
+  $('btn-sound').addEventListener('click', toggleSound);
 
   // Confirm dialog
-  $('confirm-yes').addEventListener('click', confirmStrike);
-  $('confirm-no').addEventListener('click', cancelStrike);
+  $('confirm-yes').addEventListener('click', () => { playClick(); confirmStrike(); });
+  $('confirm-no').addEventListener('click', () => { playClick(); cancelStrike(); });
   $('overlay').addEventListener('click', cancelStrike);
 
   // End screen buttons
-  $('btn-play-again').addEventListener('click', () => showScreen('menu'));
+  $('btn-play-again').addEventListener('click', () => { playClick(); showScreen('menu'); });
 
   // Handle window resize
   window.addEventListener('resize', () => {
