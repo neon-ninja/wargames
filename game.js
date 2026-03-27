@@ -688,16 +688,16 @@ async function resolveRound() {
   for (const key of state.playerTargets) {
     if (!state.cities[key].destroyed) {
       destroyCity(key);
-      aiHits++;
-      addEventLog(`${state.cities[key].name} DESTROYED`, 'ai-action');
+      playerHits++;
+      addEventLog(`${state.cities[key].name} DESTROYED`, 'player-action');
     }
   }
 
   for (const key of state.aiTargets) {
     if (!state.cities[key].destroyed) {
       destroyCity(key);
-      playerHits++;
-      addEventLog(`${state.cities[key].name} DESTROYED`, 'player-action');
+      aiHits++;
+      addEventLog(`${state.cities[key].name} DESTROYED`, 'ai-action');
     }
   }
 
@@ -707,8 +707,8 @@ async function resolveRound() {
   state.missilesLaunched.ai += state.aiTargets.length;
 
   // Spend missiles
-  state.missiles.usa -= state.aiTargets.length;
-  state.missiles.ussr -= state.playerTargets.length;
+  state.missiles.usa -= state.playerTargets.length;
+  state.missiles.ussr -= state.aiTargets.length;
   state.missiles.usa = Math.max(0, state.missiles.usa);
   state.missiles.ussr = Math.max(0, state.missiles.ussr);
 
