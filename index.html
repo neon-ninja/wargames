@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WOPR — Global Thermonuclear War</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="game-container">
+
+  <!-- ===== BOOT SCREEN ===== -->
+  <div id="screen-boot" class="screen active">
+    <pre id="boot-text"></pre>
+  </div>
+
+  <!-- ===== LOGIN SCREEN ===== -->
+  <div id="screen-login" class="screen">
+    <div class="login-box">
+      <div class="login-title">WOPR ACCESS TERMINAL</div>
+      <div class="login-subtitle">NORTH AMERICAN AEROSPACE DEFENSE COMMAND</div>
+      <form id="login-form" autocomplete="off">
+        <div class="login-field">
+          <label for="login-username">IDENTIFICATION:</label>
+          <input type="text" id="login-username" placeholder="ENTER USERNAME" autofocus>
+        </div>
+        <div class="login-field">
+          <label for="login-password">PASSWORD:</label>
+          <input type="password" id="login-password" placeholder="ENTER PASSWORD">
+        </div>
+        <button type="submit" class="btn primary" style="margin-top:20px;width:100%">[ LOG ON ]</button>
+      </form>
+      <div id="login-greet" class="greet-msg"></div>
+    </div>
+  </div>
+
+  <!-- ===== MENU SCREEN ===== -->
+  <div id="screen-menu" class="screen">
+    <div class="menu-header">
+      <pre class="wopr-logo">
+ █     █░ ▒█████   ██▓███   ██▀███
+▓█░ █ ░█░▒██▒  ██▒▓██░  ██▒▓██ ▒ ██▒
+▒█░ █ ░█ ▒██░  ██▒▓██░ ██▓▒▓██ ░▄█ ▒
+░█░ █ ░█ ▒██   ██░▒██▄█▓▒ ▒▒██▀▀█▄
+░░██▒██▓ ░ ████▓▒░▒██▒ ░  ░░██▓ ▒██▒
+░ ▓░▒ ▒  ░ ▒░▒░▒░ ▒▓▒░ ░  ░░ ▒▓ ░▒▓░
+  ▒ ░ ░    ░ ▒ ▒░ ░▒ ░      ░▒ ░ ▒░
+  ░   ░  ░ ░ ░ ▒  ░░        ░░   ░
+    ░        ░ ░              ░
+      </pre>
+      <div class="menu-title">GLOBAL THERMONUCLEAR WAR</div>
+      <div class="menu-subtitle">WAR OPERATION PLAN RESPONSE</div>
+    </div>
+    <div class="menu-box">
+      <div class="menu-label">SELECT SCENARIO</div>
+      <div id="menu-standard" class="menu-item">
+        <span class="num">1.</span> STANDARD THEATER WARFARE
+      </div>
+      <div id="menu-limited" class="menu-item">
+        <span class="num">2.</span> LIMITED NUCLEAR EXCHANGE
+      </div>
+      <div id="menu-full" class="menu-item">
+        <span class="num">3.</span> FULL THERMONUCLEAR WAR
+      </div>
+      <div id="menu-back" class="menu-item" style="margin-top:15px;border-top:1px solid var(--green-dark);padding-top:15px;">
+        <span class="num">0.</span> RETURN TO LOGON
+      </div>
+    </div>
+    <div class="joshua-hint">TIP: TRY PASSWORD "JOSHUA" FOR A SURPRISE</div>
+  </div>
+
+  <!-- ===== GAME SCREEN ===== -->
+  <div id="screen-game" class="screen">
+
+    <!-- LEFT PANEL: Status + Controls -->
+    <div class="game-panel-left">
+      <div class="panel-header">STRATEGIC STATUS</div>
+
+      <!-- Status grid -->
+      <div class="status-grid">
+        <div class="status-box player-destroyed">
+          <div class="label">ENEMY DESTROYED</div>
+          <div class="value">0</div>
+        </div>
+        <div class="status-box ai-destroyed">
+          <div class="label">YOUR LOSSES</div>
+          <div class="value">0</div>
+        </div>
+      </div>
+
+      <!-- DEFCON display -->
+      <div id="defcon-display" class="defcon-display">
+        <div class="defcon-label">DEFENSE CONDITION</div>
+        <div class="defcon-bars">
+          <div class="defcon-bar active" style="height:20%"></div>
+          <div class="defcon-bar active" style="height:40%"></div>
+          <div class="defcon-bar active" style="height:60%"></div>
+          <div class="defcon-bar active" style="height:80%"></div>
+          <div class="defcon-bar active" style="height:100%"></div>
+        </div>
+        <div id="defcon-number" class="defcon-number" style="color:var(--green)">DEFCON 5</div>
+      </div>
+
+      <!-- Missile reserves -->
+      <div class="missile-display">
+        <div class="missile-row">
+          <span class="side">USA</span>
+          <div class="missile-bar-wrap"><div class="missile-bar-fill usa-fill" style="width:100%"></div></div>
+          <span class="missile-count usa-count">24</span>
+        </div>
+        <div class="missile-row">
+          <span class="side">USSR</span>
+          <div class="missile-bar-wrap"><div class="missile-bar-fill red ussr-fill" style="width:100%"></div></div>
+          <span class="missile-count ussr-count">30</span>
+        </div>
+      </div>
+
+      <!-- Round info -->
+      <div id="round-info" class="round-info">
+        <div class="round-label">CURRENT ROUND</div>
+        <div style="font-size:18px;margin-top:4px">1 / 5</div>
+      </div>
+
+      <!-- Target list -->
+      <div class="panel-header">STRIKE PACKAGE</div>
+      <div id="target-list" class="target-list">
+        <div style="color:var(--green-dark);font-size:9px">NO TARGETS SELECTED</div>
+      </div>
+
+      <!-- Control buttons -->
+      <div class="control-panel">
+        <button id="btn-launch" class="btn danger">[ LAUNCH MISSILES ]</button>
+        <button id="btn-stand-down" class="btn">[ STAND DOWN ]</button>
+        <button id="btn-restart" class="btn">[ ABORT / MENU ]</button>
+      </div>
+
+      <!-- Instructions -->
+      <div class="instructions">
+        <span class="highlight">CLICK</span> ENEMY CITIES TO TARGET<br>
+        <span class="highlight">LAUNCH</span> TO FIRE MISSILES<br>
+        <span class="highlight">STAND DOWN</span> TO SKIP YOUR TURN
+      </div>
+    </div>
+
+    <!-- CENTER PANEL: World Map -->
+    <div class="game-panel-center">
+      <div id="phase-indicator" class="phase-indicator player">● SELECT TARGETS</div>
+      <div id="world-map" style="position:relative;">
+        <svg id="world-svg"></svg>
+        <div id="map-tooltip" class="map-tooltip"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: JOSHUA Log -->
+    <div class="game-panel-right">
+      <div class="panel-header">JOSHUA COMMUNICATIONS</div>
+      <div id="joshua-log" class="joshua-log"></div>
+      <div class="panel-header">EVENT LOG</div>
+      <div id="event-log" class="event-log"></div>
+    </div>
+
+  </div>
+
+  <!-- ===== END SCREEN ===== -->
+  <div id="screen-end" class="screen">
+    <div class="end-box">
+      <div id="end-title" class="end-title draw">SIMULATION COMPLETE</div>
+      <div id="end-message" class="end-message"></div>
+      <div class="end-stats">
+        <div class="end-stat">
+          <div class="label">CITIES DESTROYED</div>
+          <div id="end-cities-destroyed" class="val">0</div>
+        </div>
+        <div class="end-stat">
+          <div class="label">MISSILES FIRED</div>
+          <div id="end-missiles-fired" class="val">0</div>
+        </div>
+        <div class="end-stat">
+          <div class="label">ROUNDS PLAYED</div>
+          <div id="end-rounds" class="val">0</div>
+        </div>
+        <div class="end-stat">
+          <div class="label">FINAL DEFCON</div>
+          <div id="end-defcon" class="val">5</div>
+        </div>
+      </div>
+      <div id="famous-quote" class="famous-quote"></div>
+      <button id="btn-play-again" class="btn primary" style="width:100%;margin-top:15px">[ PLAY AGAIN ]</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Strike confirmation dialog -->
+<div id="overlay"></div>
+<div id="strike-confirm">
+  <div class="confirm-title">LAUNCH AUTHORIZATION</div>
+  <div id="confirm-target-name" class="confirm-target">—</div>
+  <div class="confirm-btns">
+    <button id="confirm-yes" class="btn danger">[ CONFIRM STRIKE ]</button>
+    <button id="confirm-no" class="btn">[ CANCEL ]</button>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
